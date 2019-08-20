@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.projectfloodlight.openflow.protocol.OFFactory;
+import org.projectfloodlight.openflow.protocol.OFMatchV3;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFPacketQueue;
 import org.projectfloodlight.openflow.protocol.OFQueueGetConfigReply;
@@ -26,12 +27,16 @@ import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 
+
 import net.floodlightcontroller.core.IFloodlightProviderService;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.Set;
 import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.staticentry.IStaticEntryPusherService;
+import net.floodlightcontroller.storage.IStorageSourceService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +50,8 @@ public class QoS implements IOFMessageListener, IFloodlightModule {
 	protected Set<Long> macAddresses;
 	protected static Logger logger;
 	protected IOFSwitchService switchService;
+	protected IStorageSourceService storageSource;
+	protected IStaticEntryPusherService flowPusher;
 	
 	
 	@Override
@@ -80,6 +87,7 @@ public class QoS implements IOFMessageListener, IFloodlightModule {
 	public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
 		Collection<Class<? extends IFloodlightService>> collection = new ArrayList<Class<? extends IFloodlightService>>();
 		collection.add(IFloodlightProviderService.class);
+		collection.add(IStorageSourceService.class);
 		return collection;
 	}
 
@@ -88,7 +96,7 @@ public class QoS implements IOFMessageListener, IFloodlightModule {
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
 	    macAddresses = new ConcurrentSkipListSet<Long>();
 	    logger = LoggerFactory.getLogger(QoS.class);
-	    switchService = context.getServiceImpl(IOFSwitchService.class);
+	    storageSource = context.getServiceImpl(IStorageSourceService.class);
 	}
 
 	@Override
