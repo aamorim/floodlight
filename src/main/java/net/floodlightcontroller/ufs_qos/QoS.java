@@ -6,6 +6,7 @@ import java.util.Map;
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFMatchV3;
 import org.projectfloodlight.openflow.protocol.OFMessage;
+import org.projectfloodlight.openflow.protocol.OFPacketIn;
 import org.projectfloodlight.openflow.protocol.OFPacketQueue;
 import org.projectfloodlight.openflow.protocol.OFQueueGetConfigReply;
 import org.projectfloodlight.openflow.protocol.OFQueueGetConfigRequest;
@@ -22,6 +23,7 @@ import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IOFMessageListener;
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
+import net.floodlightcontroller.core.internal.OFMessageDecoder;
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
@@ -82,7 +84,10 @@ public class QoS implements IOFMessageListener, IFloodlightModule {
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+ 
+	/**
+	 * Esse método carrega todos os modulos a qual esse modulo depende.
+	 */
 	@Override
 	public Collection<Class<? extends IFloodlightService>> getModuleDependencies() {
 		Collection<Class<? extends IFloodlightService>> collection = new ArrayList<Class<? extends IFloodlightService>>();
@@ -91,35 +96,81 @@ public class QoS implements IOFMessageListener, IFloodlightModule {
 		return collection;
 	}
 
+	/**
+	 * Ação execultada ao iniciar o modulo
+	 */
 	@Override
 	public void init(FloodlightModuleContext context) throws FloodlightModuleException {
+		
 		floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
-	    macAddresses = new ConcurrentSkipListSet<Long>();
 	    logger = LoggerFactory.getLogger(QoS.class);
 	    storageSource = context.getServiceImpl(IStorageSourceService.class);
 	}
 
+	/**
+	 * Metodo ouvinte
+	 */
 	@Override
 	public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
+		
 		floodlightProvider.addOFMessageListener(OFType.PACKET_IN, this);
 		
 	}
 
+	/**
+	 * Acao a ser tomada para as mensagens PACKET_IN
+	 */
 	@Override
 	public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
 		
+        StringBuffer sb =  new StringBuffer("");
+        Ethernet eth;
+
+		switch (msg.getType()) {
+		case PACKET_IN:
+			OFPacketIn pktIn = ( OFPacketIn ) msg;
+			sb.append("\ntype: " + pktIn.toString());
+			sb.append("\npacket_in [ ");
+            sb.append(sw.getId().toString());
+            sb.append(" -> Controller");
+            sb.append(" ]");
+
+            sb.append("\ntotal length: ");
+            sb.append(pktIn.getTotalLen());
+            sb.append("\nin_port: ");
+            sb.append(pktIn.getInPort());
+            sb.append("\ndata_length: ");
+            sb.append(pktIn.getTotalLen() - 0);
+            sb.append("\nbuffer: ");
+            sb.append(pktIn.getBufferId());
+
+            // If the conext is not set by floodlight, then ignore.
+            if (cntx != null) {
+            // packet type  icmp, arp, etc.
+                eth = IFloodlightProviderService.bcStore.get(cntx,
+                        IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
+                if (eth != null)
+                	   sb.append("\ndata eth: ");
+                       sb.append(eth.toString());
+
+            }
+            logger.info("QoS-UFS data: {} ",sb.toString());
+			break;
+
+		default:
+			break;
+		}
 		
-		
-		Ethernet eth =
-                IFloodlightProviderService.bcStore.get(cntx,
-                                            IFloodlightProviderService.CONTEXT_PI_PAYLOAD); 
-        Long sourceMACHash = eth.getSourceMACAddress().getLong();
-        if (!macAddresses.contains(sourceMACHash)) {
-            macAddresses.add(sourceMACHash);
-            logger.info("MAC Address: {} seen on switch: {}",
-                    eth.getSourceMACAddress().toString(),
-                    sw.getId().toString());
-        }
+//		Ethernet eth =
+//                IFloodlightProviderService.bcStore.get(cntx,
+//                                            IFloodlightProviderService.CONTEXT_PI_PAYLOAD); 
+//        Long sourceMACHash = eth.getSourceMACAddress().getLong();
+//        if (!macAddresses.contains(sourceMACHash)) {
+//            macAddresses.add(sourceMACHash);
+//            logger.info("MAC Address: {} seen on switch: {}",
+//                    eth.getSourceMACAddress().toString(),
+//                    sw.getId().toString());
+//        }
         
         
         
