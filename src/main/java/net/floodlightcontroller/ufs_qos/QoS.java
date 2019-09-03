@@ -20,6 +20,7 @@ import org.projectfloodlight.openflow.protocol.OFPacketOut;
 import org.projectfloodlight.openflow.protocol.OFPacketQueue;
 import org.projectfloodlight.openflow.protocol.OFQueueGetConfigReply;
 import org.projectfloodlight.openflow.protocol.OFQueueGetConfigRequest;
+import org.projectfloodlight.openflow.protocol.OFQueueProperties;
 import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.protocol.OFVersion;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
@@ -68,6 +69,7 @@ import net.floodlightcontroller.storage.IResultSet;
 import net.floodlightcontroller.storage.IStorageSourceService;
 import net.floodlightcontroller.storage.StorageException;
 import net.floodlightcontroller.topology.Archipelago;
+import net.floodlightcontroller.ufs_util.UFSUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +77,7 @@ import org.slf4j.LoggerFactory;
 import com.sun.javafx.collections.SetListenerHelper;
 
 
-public class QoS implements IOFMessageListener, IFloodlightModule, IQoSService {
+public class QoS extends UFSUtil implements IOFMessageListener, IFloodlightModule, IQoSService {
 
 	
 	protected IFloodlightProviderService floodlightProvider;
@@ -255,7 +257,11 @@ public class QoS implements IOFMessageListener, IFloodlightModule, IQoSService {
 				a.queue = 1;
 				a.priority = 2;
 				a.tos = 40;
-				addPolicyToNetwork(a);
+				addPolicyToNetwork(a);				
+				
+				OFActionSetQueue setQueue = myFactory.actions().buildSetQueue()
+				        .setQueueId(1)
+				        .build();
 				
 				if(isIPv4(eth.getEtherType())) {
 					IPv4 ipv4 = (IPv4) eth.getPayload();
@@ -275,20 +281,6 @@ public class QoS implements IOFMessageListener, IFloodlightModule, IQoSService {
         
         return Command.CONTINUE;
 	}
-	
-	
-	private boolean isIPv4v6(EthType eth){
-		return (EthType.IPv4 == eth) || (EthType.IPv6 == eth); 
-	}
-	
-	private boolean isIPv4(EthType eth) {
-		return EthType.IPv4 == eth;
-	}
-	
-	private boolean isIPv6(EthType eth) {
-		return EthType.IPv6 == eth;
-	}
-	
 	
 	
 	/**
